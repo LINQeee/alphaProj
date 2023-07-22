@@ -2,6 +2,7 @@
 using Cinemachine;
 using UnityEngine;
 
+[RequireComponent(typeof(PlayerController))]
 public class CameraManager:MonoBehaviour
 {
     
@@ -12,15 +13,15 @@ public class CameraManager:MonoBehaviour
     [SerializeField] private float topClamp = 70;
     [SerializeField] private float bottomClamp = -30;
     [NonSerialized] public CinemachineVirtualCamera currentCinemachine;
-    
-    private InputManager _inputManager;
+
+    private PlayerController _playerController;
     private float _cinemachineTargetYaw;
     private float _cinemachineTargetPitch;
     private const float Threshold = 0.01f;
     
     private void Awake()
     {
-        _inputManager = GetComponent<InputManager>();
+        _playerController = GetComponent<PlayerController>();
         currentCinemachine = cinemachineTpCam;
         _cinemachineTargetYaw = currentCinemachine.Follow.transform.rotation.eulerAngles.y;
     }
@@ -49,10 +50,10 @@ public class CameraManager:MonoBehaviour
 
     public void CameraRotation()
     {
-        if (_inputManager.look.sqrMagnitude >= Threshold)
+        if (_playerController.inputManager.look.sqrMagnitude >= Threshold)
         {
-            _cinemachineTargetYaw += _inputManager.look.x;
-            _cinemachineTargetPitch += _inputManager.look.y;
+            _cinemachineTargetYaw += _playerController.inputManager.look.x;
+            _cinemachineTargetPitch += _playerController.inputManager.look.y;
         }
 
         _cinemachineTargetYaw = ClampAngle(_cinemachineTargetYaw, float.MinValue, float.MaxValue);

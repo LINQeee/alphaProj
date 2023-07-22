@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using Utils;
 
 [RequireComponent(typeof(HorseAnimationManager)), RequireComponent(typeof(HorseLocomotion)), RequireComponent(typeof(StaminaProfile))]
 public class HorseController : MonoBehaviour
@@ -8,7 +9,7 @@ public class HorseController : MonoBehaviour
     public Transform cameraFollow;
     public TransformPair leftHandPair;
     public TransformPair rightHandPair;
-    [NonSerialized] public RiderManager CurrentRiderManager;
+    [NonSerialized] public PlayerController currentPlayerController;
     public float maxStamina;
     [NonSerialized] public bool IsEnabledController;
     [NonSerialized] public HorseLocomotion HorseLocomotion;
@@ -54,7 +55,7 @@ public class HorseController : MonoBehaviour
 
     private void AnimateRider()
     {
-        CurrentRiderManager.AnimationManager.SetIsHorseWalking(HorseLocomotion.HorseInput.y > 0);
-        CurrentRiderManager.AnimationManager.SetIsHorseSprinting(_staminaProfile.IsCanRun);
+        currentPlayerController.animationManager.SetIsHorseWalking(HorseLocomotion.HorseInput.y > 0);
+        currentPlayerController.animationManager.SetIsHorseSprinting(_staminaProfile.isCanRun);
     }
 }

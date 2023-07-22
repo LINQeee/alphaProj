@@ -260,6 +260,45 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
                     ""isPartOfComposite"": false
                 }
             ]
+        },
+        {
+            ""name"": ""Weapons"",
+            ""id"": ""d2ad8a97-4abc-47e2-8e5f-c51ba4e87dfe"",
+            ""actions"": [
+                {
+                    ""name"": ""FirstWeaponSlot"",
+                    ""type"": ""Button"",
+                    ""id"": ""cd950e37-31a5-421d-bf58-183c3e77af49"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                }
+            ],
+            ""bindings"": [
+                {
+                    ""name"": """",
+                    ""id"": ""99ead035-7814-4ed6-9f8d-268bd708207d"",
+                    ""path"": ""<Keyboard>/1"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""FirstWeaponSlot"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""51a45a44-0565-4d71-8671-f1112d7653eb"",
+                    ""path"": ""<Gamepad>/dpad/left"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""FirstWeaponSlot"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                }
+            ]
         }
     ],
     ""controlSchemes"": [
@@ -320,6 +359,9 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         m_Player_Sprint = m_Player.FindAction("Sprint", throwIfNotFound: true);
         m_Player_HorseMount = m_Player.FindAction("HorseMount", throwIfNotFound: true);
         m_Player_Aim = m_Player.FindAction("Aim", throwIfNotFound: true);
+        // Weapons
+        m_Weapons = asset.FindActionMap("Weapons", throwIfNotFound: true);
+        m_Weapons_FirstWeaponSlot = m_Weapons.FindAction("FirstWeaponSlot", throwIfNotFound: true);
     }
 
     public void Dispose()
@@ -463,6 +505,52 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         }
     }
     public PlayerActions @Player => new PlayerActions(this);
+
+    // Weapons
+    private readonly InputActionMap m_Weapons;
+    private List<IWeaponsActions> m_WeaponsActionsCallbackInterfaces = new List<IWeaponsActions>();
+    private readonly InputAction m_Weapons_FirstWeaponSlot;
+    public struct WeaponsActions
+    {
+        private @PlayerControls m_Wrapper;
+        public WeaponsActions(@PlayerControls wrapper) { m_Wrapper = wrapper; }
+        public InputAction @FirstWeaponSlot => m_Wrapper.m_Weapons_FirstWeaponSlot;
+        public InputActionMap Get() { return m_Wrapper.m_Weapons; }
+        public void Enable() { Get().Enable(); }
+        public void Disable() { Get().Disable(); }
+        public bool enabled => Get().enabled;
+        public static implicit operator InputActionMap(WeaponsActions set) { return set.Get(); }
+        public void AddCallbacks(IWeaponsActions instance)
+        {
+            if (instance == null || m_Wrapper.m_WeaponsActionsCallbackInterfaces.Contains(instance)) return;
+            m_Wrapper.m_WeaponsActionsCallbackInterfaces.Add(instance);
+            @FirstWeaponSlot.started += instance.OnFirstWeaponSlot;
+            @FirstWeaponSlot.performed += instance.OnFirstWeaponSlot;
+            @FirstWeaponSlot.canceled += instance.OnFirstWeaponSlot;
+        }
+
+        private void UnregisterCallbacks(IWeaponsActions instance)
+        {
+            @FirstWeaponSlot.started -= instance.OnFirstWeaponSlot;
+            @FirstWeaponSlot.performed -= instance.OnFirstWeaponSlot;
+            @FirstWeaponSlot.canceled -= instance.OnFirstWeaponSlot;
+        }
+
+        public void RemoveCallbacks(IWeaponsActions instance)
+        {
+            if (m_Wrapper.m_WeaponsActionsCallbackInterfaces.Remove(instance))
+                UnregisterCallbacks(instance);
+        }
+
+        public void SetCallbacks(IWeaponsActions instance)
+        {
+            foreach (var item in m_Wrapper.m_WeaponsActionsCallbackInterfaces)
+                UnregisterCallbacks(item);
+            m_Wrapper.m_WeaponsActionsCallbackInterfaces.Clear();
+            AddCallbacks(instance);
+        }
+    }
+    public WeaponsActions @Weapons => new WeaponsActions(this);
     private int m_KeyboardMouseSchemeIndex = -1;
     public InputControlScheme KeyboardMouseScheme
     {
@@ -507,5 +595,9 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         void OnSprint(InputAction.CallbackContext context);
         void OnHorseMount(InputAction.CallbackContext context);
         void OnAim(InputAction.CallbackContext context);
+    }
+    public interface IWeaponsActions
+    {
+        void OnFirstWeaponSlot(InputAction.CallbackContext context);
     }
 }

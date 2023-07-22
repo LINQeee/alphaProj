@@ -1,14 +1,10 @@
 using UnityEngine;
 
-[RequireComponent(typeof(RiderManager)), RequireComponent(typeof(CameraManager)), RequireComponent(typeof(PlayerLocomotion)), RequireComponent(typeof(StaminaProfile)), RequireComponent(typeof(AnimationManager))]
+[RequireComponent(typeof(PlayerController))]
 public class InputManager : MonoBehaviour
 {
+    private PlayerController _playerController;
     private PlayerControls _playerControls;
-    private RiderManager _riderManager;
-    private CameraManager _cameraManager;
-    private PlayerLocomotion _playerLocomotion;
-    private StaminaProfile _staminaProfile;
-    private AnimationManager _animationManager;
     public Vector2 move;
     public Vector2 look;
     public bool sprintInput;
@@ -16,11 +12,7 @@ public class InputManager : MonoBehaviour
 
     private void Awake()
     {
-        _riderManager = GetComponent<RiderManager>();
-        _cameraManager = GetComponent<CameraManager>();
-        _playerLocomotion = GetComponent<PlayerLocomotion>();
-        _staminaProfile = GetComponent<StaminaProfile>();
-        _animationManager = GetComponent<AnimationManager>();
+        _playerController = GetComponent<PlayerController>();
     }
 
     private void OnEnable()
@@ -44,30 +36,15 @@ public class InputManager : MonoBehaviour
             _playerControls.Player.Jump.performed += _ => jumpInput = true;
             _playerControls.Player.Jump.canceled += _ => jumpInput = false;
 
-            _playerControls.Player.HorseMount.performed += _ => _riderManager.MountOrDismount();
+            _playerControls.Player.HorseMount.performed += _ => _playerController.riderManager.MountOrDismount();
 
-            _playerControls.Player.Aim.performed += _ => StartAiming();
-            _playerControls.Player.Aim.canceled += _ => StopAiming();
+            _playerControls.Player.Aim.performed += _ => _playerController.weaponManager.StartAiming();
+            _playerControls.Player.Aim.canceled += _ => _playerController.weaponManager.StopAiming();
+
+            _playerControls.Weapons.FirstWeaponSlot.performed += _ => _playerController.weaponManager.EquipOrUnEquipWeapon(0);
         }
 
         _playerControls.Enable();
-    }
-    
-    private void StartAiming()
-    {
-        if (_riderManager.isMounted) return;
-        _cameraManager.SwitchToAimCam();
-        _playerLocomotion.IsAiming = true;
-        _staminaProfile.isProfileEnabled = false;
-        _animationManager.SwapMovementAnimationToAiming();
-    }
-
-    private void StopAiming()
-    {
-        _cameraManager.SwitchToTpCam();
-        _playerLocomotion.IsAiming = false;
-        _staminaProfile.isProfileEnabled = true;
-        _animationManager.SetIsAiming(false);
     }
 
     private void OnDisable()

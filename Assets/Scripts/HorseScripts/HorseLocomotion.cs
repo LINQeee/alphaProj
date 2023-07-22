@@ -113,7 +113,7 @@ public class HorseLocomotion : MonoBehaviour
         if (HorseInput.y < 0) return;
 
         var newVelocity = new Vector3(0, _rb.velocity.y,
-            _staminaProfile.IsCanRun
+            _staminaProfile.isCanRun
                 ? HorseInput.y * runSpeed
                 : HorseInput.y * moveSpeed);
         _rb.velocity = transform.TransformVector(newVelocity);

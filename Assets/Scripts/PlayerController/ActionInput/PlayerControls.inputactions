@@ -238,6 +238,45 @@
                     "isPartOfComposite": false
                 }
             ]
+        },
+        {
+            "name": "Weapons",
+            "id": "d2ad8a97-4abc-47e2-8e5f-c51ba4e87dfe",
+            "actions": [
+                {
+                    "name": "FirstWeaponSlot",
+                    "type": "Button",
+                    "id": "cd950e37-31a5-421d-bf58-183c3e77af49",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "99ead035-7814-4ed6-9f8d-268bd708207d",
+                    "path": "<Keyboard>/1",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "FirstWeaponSlot",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "51a45a44-0565-4d71-8671-f1112d7653eb",
+                    "path": "<Gamepad>/dpad/left",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "FirstWeaponSlot",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
         }
     ],
     "controlSchemes": [

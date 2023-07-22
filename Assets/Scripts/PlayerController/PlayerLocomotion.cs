@@ -2,8 +2,7 @@
 using UnityEngine;
 using Random = UnityEngine.Random;
 
-[RequireComponent(typeof(StaminaProfile)), RequireComponent(typeof(CharacterController)),
- RequireComponent(typeof(InputManager)), RequireComponent(typeof(AnimationManager)), RequireComponent(typeof(CameraManager))]
+[RequireComponent(typeof(PlayerController))]
 public class PlayerLocomotion : MonoBehaviour
 {
     [SerializeField] private float moveSpeed = 4;
@@ -20,13 +19,8 @@ public class PlayerLocomotion : MonoBehaviour
     [SerializeField] private AudioClip landingAudioClip;
     [SerializeField] private AudioClip[] footstepAudioClips;
     [SerializeField] [Range(0, 1)] private float footstepAudioVolume;
-    [NonSerialized] public bool IsAiming;
 
-    private CameraManager _cameraManager;
-    private StaminaProfile _staminaProfile;
-    private CharacterController _controller;
-    private InputManager _inputManager;
-    private AnimationManager _animationManager;
+    private PlayerController _playerController;
     private float _jumpTimeoutDelta;
     private float _fallTimeoutDelta;
     private float _speed;
@@ -36,15 +30,12 @@ public class PlayerLocomotion : MonoBehaviour
     private float _verticalVelocity;
     private const float TerminalVelocity = 53;
     private float _animationBlend;
+    private bool _isJumping;
 
 
     private void Awake()
     {
-        _staminaProfile = GetComponent<StaminaProfile>();
-        _controller = GetComponent<CharacterController>();
-        _inputManager = GetComponent<InputManager>();
-        _animationManager = GetComponent<AnimationManager>();
-        _cameraManager = GetComponent<CameraManager>();
+        _playerController = GetComponent<PlayerController>();
 
         _jumpTimeoutDelta = jumpTimeout;
         _fallTimeoutDelta = fallTimeout;
@@ -52,13 +43,15 @@ public class PlayerLocomotion : MonoBehaviour
 
     public void HandleMovement()
     {
-        float targetSpeed = _staminaProfile.IsCanRun && !IsAiming ? sprintSpeed : moveSpeed;
+        bool isAiming = _playerController.weaponManager.isAiming;
+        
+        float targetSpeed = _playerController.staminaProfile.isCanRun && !isAiming ? sprintSpeed : moveSpeed;
 
-        if (_inputManager.move == Vector2.zero) targetSpeed = 0;
+        if (_playerController.inputManager.move == Vector2.zero) targetSpeed = 0;
 
-        float currentHorizontalSpeed = new Vector3(_controller.velocity.x, 0, _controller.velocity.z).magnitude;
+        float currentHorizontalSpeed = new Vector3(_playerController.characterController.velocity.x, 0, _playerController.characterController.velocity.z).magnitude;
 
-        float speedOffset = 0.1f;
+        const float speedOffset = 0.1f;
 
         if (currentHorizontalSpeed < targetSpeed - speedOffset || currentHorizontalSpeed > targetSpeed + speedOffset)
         {
@@ -74,35 +67,35 @@ public class PlayerLocomotion : MonoBehaviour
         _animationBlend = Mathf.Lerp(_animationBlend, targetSpeed, Time.deltaTime * speedChangeRate);
         if (_animationBlend < 0.01f) _animationBlend = 0;
 
-        Vector3 inputDirection = IsAiming ? Vector3.forward : new Vector3(_inputManager.move.x, 0, _inputManager.move.y).normalized;
+        Vector3 inputDirection = isAiming ? Vector3.forward : new Vector3(_playerController.inputManager.move.x, 0, _playerController.inputManager.move.y).normalized;
 
-        if (_inputManager.move != Vector2.zero || IsAiming)
+        if (_playerController.inputManager.move != Vector2.zero || isAiming)
         {
             _targetRotation = Mathf.Atan2(inputDirection.x, inputDirection.z) * Mathf.Rad2Deg +
-                              _cameraManager.currentCinemachine.Follow.transform.eulerAngles.y;
+                              _playerController.cameraManager.currentCinemachine.Follow.transform.eulerAngles.y;
             float rotation = Mathf.SmoothDampAngle(transform.eulerAngles.y, _targetRotation, ref _rotationVelocity,
                 rotationSmoothTime);
 
             transform.rotation = Quaternion.Euler(0, rotation, 0);
         }
 
-        Vector3 targetDirection = IsAiming ?
-            transform.rotation * new Vector3(_inputManager.move.x, 0, _inputManager.move.y) :
+        Vector3 targetDirection = isAiming ?
+            transform.rotation * new Vector3(_playerController.inputManager.move.x, 0, _playerController.inputManager.move.y) :
             Quaternion.Euler(0, _targetRotation, 0) * Vector3.forward;
 
-        _controller.Move(targetDirection.normalized * (_speed * Time.deltaTime) +
+        _playerController.characterController.Move(targetDirection.normalized * (_speed * Time.deltaTime) +
                          new Vector3(0, _verticalVelocity, 0) * Time.deltaTime);
 
-        _animationManager.SetSpeed(_animationBlend);
+        _playerController.animationManager.SetSpeed(_animationBlend);
     }
 
     public void GroundedCheck()
     {
-        Vector3 spherePosition = new Vector3(transform.position.x, transform.position.y - groundedOffset,
+        var spherePosition = new Vector3(transform.position.x, transform.position.y - groundedOffset,
             transform.position.z);
         _grounded = Physics.CheckSphere(spherePosition, groundedRadius, groundLayers, QueryTriggerInteraction.Ignore);
 
-        _animationManager.SetGrounded(_grounded);
+        _playerController.animationManager.SetGrounded(_grounded);
     }
 
     public void HandleJumpAndGravity()
@@ -111,16 +104,16 @@ public class PlayerLocomotion : MonoBehaviour
         {
             _fallTimeoutDelta = fallTimeout;
 
-            _animationManager.SetJump(false);
+            _isJumping = false;
 
             if (_verticalVelocity < 0) _verticalVelocity = -2;
 
-            if (_inputManager.jumpInput && _jumpTimeoutDelta <= 0 && !IsAiming && _staminaProfile.IsCanJump())
+            if (_playerController.inputManager.jumpInput && _jumpTimeoutDelta <= 0 && !_playerController.weaponManager.isAiming && _playerController.staminaProfile.IsCanJump())
             {
                 _verticalVelocity = Mathf.Sqrt(jumpHeight * -2 * gravity);
 
-                _animationManager.PlayJump();
-                _animationManager.SetJump(true);
+                _playerController.animationManager.AnimateJumping();
+                _isJumping = true;
             }
 
             if (_jumpTimeoutDelta >= 0)
@@ -138,7 +131,7 @@ public class PlayerLocomotion : MonoBehaviour
             }
             else
             {
-                if (!_animationManager.GetJump()) _animationManager.PlayInAir();
+                if (!_isJumping) _playerController.animationManager.AnimateFalling();
             }
         }
 
@@ -150,8 +143,8 @@ public class PlayerLocomotion : MonoBehaviour
     {
         if (!(animationEvent.animatorClipInfo.weight > 0.5f)) return;
         if (footstepAudioClips.Length <= 0) return;
-        var index = Random.Range(0, footstepAudioClips.Length);
-        AudioSource.PlayClipAtPoint(footstepAudioClips[index], transform.TransformPoint(_controller.center),
+        int index = Random.Range(0, footstepAudioClips.Length);
+        AudioSource.PlayClipAtPoint(footstepAudioClips[index], transform.TransformPoint(_playerController.characterController.center),
             footstepAudioVolume);
     }
 
@@ -160,7 +153,7 @@ public class PlayerLocomotion : MonoBehaviour
     {
         if (animationEvent.animatorClipInfo.weight > 0.5f)
         {
-            AudioSource.PlayClipAtPoint(landingAudioClip, transform.TransformPoint(_controller.center),
+            AudioSource.PlayClipAtPoint(landingAudioClip, transform.TransformPoint(_playerController.characterController.center),
                 footstepAudioVolume);
         }
     }

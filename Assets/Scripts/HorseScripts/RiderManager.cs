@@ -3,21 +3,15 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.Animations.Rigging;
+using Utils;
 
-[RequireComponent(typeof(PlayerController)),
- RequireComponent(typeof(NavMeshAgent)),
- RequireComponent(typeof(AnimationManager)),
- RequireComponent(typeof(RigBuilder)),
- RequireComponent(typeof(CameraManager)),
- RequireComponent(typeof(StaminaProfile)),
- RequireComponent(typeof(PlayerLocomotion))
-]
+[RequireComponent(typeof(NavMeshAgent))]
 public class RiderManager : MonoBehaviour
 {
-    [NonSerialized] public HorseController CurrentHorse;
-    [NonSerialized] public AnimationManager AnimationManager;
+    [NonSerialized] public HorseController currentHorse;
     public bool isCanMount { private get; set; }
     public bool isMounted { get; private set; }
+    public bool isMountingOrDismounting { get; private set; }
     
     [SerializeField] private Transform leftHandTarget;
     [SerializeField] private Transform rightHandTarget;
@@ -25,29 +19,16 @@ public class RiderManager : MonoBehaviour
     
     private PlayerController _playerController;
     private NavMeshAgent _agent;
-    private CameraManager _cameraManager;
-    private bool _isMountingOrDismounting;
-    private CharacterController _characterController;
-    private RigBuilder _rigBuilder;
-    private StaminaProfile _staminaProfile;
-    private PlayerLocomotion _playerLocomotion;
 
     private void Awake()
     {
         _playerController = GetComponent<PlayerController>();
         _agent = GetComponent<NavMeshAgent>();
-        AnimationManager = GetComponent<AnimationManager>();
-        _cameraManager = GetComponent<CameraManager>();
-        _characterController = GetComponent<CharacterController>();
-        _rigBuilder = GetComponent<RigBuilder>();
-        _staminaProfile = GetComponent<StaminaProfile>();
-        _playerLocomotion = GetComponent<PlayerLocomotion>();
-        _rigBuilder.enabled = false;
     }
 
     public void MountOrDismount()
     {
-        if (_isMountingOrDismounting || _playerLocomotion.IsAiming) return;
+        if (isMountingOrDismounting || _playerController.weaponManager.isAiming) return;
         StartCoroutine(!isMounted ? Mount() : Dismount());
     }
 
@@ -63,19 +44,19 @@ public class RiderManager : MonoBehaviour
     private IEnumerator Mount()
     {
         if (!isCanMount) yield break;
-        _isMountingOrDismounting = true;
+        isMountingOrDismounting = true;
         isMounted = true;
         DisablePlayerController();
         GoToNearestMountPlace();
         yield return uiManager.ShowAbility(uiManager.horseMountAbility);
         MovePlayerToRiderPlace();
         EnableHorseController();
-        _isMountingOrDismounting = false;
+        isMountingOrDismounting = false;
     }
 
     private void GoToNearestMountPlace()
     {
-        Vector3 nearestPlace = DetectNearestMountPlace(CurrentHorse.interactionTransforms);
+        Vector3 nearestPlace = DetectNearestMountPlace(currentHorse.interactionTransforms);
         if (!IsNearPosition(nearestPlace)) StartCoroutine(MoveAgentToPos(nearestPlace));
     }
 
@@ -83,9 +64,9 @@ public class RiderManager : MonoBehaviour
     {
         _agent.enabled = true;
         _agent.SetDestination(position);
-        AnimationManager.SetSpeed(2);
+        _playerController.animationManager.SetSpeed(2);
         yield return new WaitUntil(() => IsNearPosition(position));
-        AnimationManager.SetSpeed(0);
+        _playerController.animationManager.SetSpeed(0);
         _agent.enabled = false;
     }
 
@@ -94,66 +75,66 @@ public class RiderManager : MonoBehaviour
     private void DisablePlayerController()
     {
         _playerController.isEnabledController = false;
-        _characterController.enabled = false;
-        AnimationManager.SetSpeed(0);
-        _staminaProfile.isProfileEnabled = false;
+        _playerController.characterController.enabled = false;
+        _playerController.animationManager.SetSpeed(0);
+        _playerController.staminaProfile.isProfileEnabled = false;
     }
 
     private void EnableHorseController()
     {
-        var horseStaminaProfile = CurrentHorse.GetComponent<StaminaProfile>();
+        var horseStaminaProfile = currentHorse.GetComponent<StaminaProfile>();
         horseStaminaProfile.ResetProfile();
         horseStaminaProfile.isProfileEnabled = true;
         horseStaminaProfile.inputManager = GetComponent<InputManager>();
-        CurrentHorse.CurrentRiderManager = this;
-        CurrentHorse.leftHandPair.child = leftHandTarget;
-        CurrentHorse.rightHandPair.child = rightHandTarget;
+        currentHorse.currentPlayerController = _playerController;
+        currentHorse.leftHandPair.child = leftHandTarget;
+        currentHorse.rightHandPair.child = rightHandTarget;
         
-        CurrentHorse.IsEnabledController = true;
+        currentHorse.IsEnabledController = true;
     }
 
     private void DisableHorseController()
     {
-        CurrentHorse.IsEnabledController = false;
-        CurrentHorse.HorseLocomotion.ResetInput();
-        CurrentHorse.GetComponent<StaminaProfile>().isProfileEnabled = false;
+        currentHorse.IsEnabledController = false;
+        currentHorse.HorseLocomotion.ResetInput();
+        currentHorse.GetComponent<StaminaProfile>().isProfileEnabled = false;
     }
 
     private void MovePlayerToRiderPlace()
     {
-        transform.SetParent(CurrentHorse.interactionTransforms.riderPlace);
+        transform.SetParent(currentHorse.interactionTransforms.riderPlace);
         transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.Euler(Vector3.zero));
-        AnimationManager.PlayMount();
-        _cameraManager.SwapTpCameraTarget(CurrentHorse.cameraFollow);
-        _rigBuilder.enabled = true;
+        _playerController.animationManager.AnimateMount();
+        _playerController.cameraManager.SwapTpCameraTarget(currentHorse.cameraFollow);
+        _playerController.rigBuilder.EnableLayers();
     }
 
     private void ResetPlayerPosition()
     {
-        Transform rightMountPlace = CurrentHorse.interactionTransforms.rightMountPlace;
+        Transform rightMountPlace = currentHorse.interactionTransforms.rightMountPlace;
         transform.SetPositionAndRotation(rightMountPlace.position, rightMountPlace.rotation);
         transform.SetParent(null);
-        AnimationManager.SetIsMounted(false);
-        _rigBuilder.enabled = false;
-        _cameraManager.ResetTpCameraTarget();
+        _playerController.animationManager.SetIsMounted(false);
+        _playerController.rigBuilder.DisableLayers();
+        _playerController.cameraManager.ResetTpCameraTarget();
     }
 
     private void EnablePlayerController()
     {
         _playerController.isEnabledController = true;
-        _characterController.enabled = true;
-        _staminaProfile.isProfileEnabled = true;
+        _playerController.characterController.enabled = true;
+        _playerController.staminaProfile.isProfileEnabled = true;
     }
 
     private IEnumerator Dismount()
     {
-        _isMountingOrDismounting = true;
+        isMountingOrDismounting = true;
         isMounted = false;
-        AnimationManager.SetIsHorseWalking(false);
+        _playerController.animationManager.SetIsHorseWalking(false);
         DisableHorseController();
         yield return uiManager.ShowAbility(uiManager.horseDismountAbility);
         ResetPlayerPosition();
         EnablePlayerController();
-        _isMountingOrDismounting = false;
+        isMountingOrDismounting = false;
     }
 }

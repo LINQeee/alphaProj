@@ -1,41 +1,54 @@
+using System;
 using UnityEngine;
+using UnityEngine.Animations.Rigging;
+using Utils;
 
-[RequireComponent(typeof(PlayerLocomotion)), RequireComponent(typeof(CameraManager)), RequireComponent(typeof(StaminaProfile)), RequireComponent(typeof(AnimationManager))]
+[RequireComponent(typeof(PlayerLocomotion)), RequireComponent(typeof(CameraManager)),
+ RequireComponent(typeof(StaminaProfile)), RequireComponent(typeof(AnimationManager)),
+ RequireComponent(typeof(RiderManager)), RequireComponent(typeof(InputManager)),
+ RequireComponent(typeof(WeaponManager)), RequireComponent(typeof(RigBuilder))]
 public class PlayerController : MonoBehaviour
 {
-    
     public bool isEnabledController = true;
     public bool lockCameraPosition;
 
 
-    private PlayerLocomotion _playerLocomotion;
-    private CameraManager _cameraManager;
-    private StaminaProfile _staminaProfile;
-    private AnimationManager _animationManager;
+    [NonSerialized] public PlayerLocomotion playerLocomotion;
+    [NonSerialized] public CameraManager cameraManager;
+    [NonSerialized] public StaminaProfile staminaProfile;
+    [NonSerialized] public AnimationManager animationManager;
+    [NonSerialized] public InputManager inputManager;
+    [NonSerialized] public RigBuilder rigBuilder;
+    [NonSerialized] public RiderManager riderManager;
+    [NonSerialized] public WeaponManager weaponManager;
+    [NonSerialized] public CharacterController characterController;
 
     private void Awake()
     {
-        _playerLocomotion = GetComponent<PlayerLocomotion>();
-        _cameraManager = GetComponent<CameraManager>();
-        _staminaProfile = GetComponent<StaminaProfile>();
-        _staminaProfile.isProfileEnabled = true;
-        _staminaProfile.ResetProfile();
-        _staminaProfile.inputManager = GetComponent<InputManager>();
-        _animationManager = GetComponent<AnimationManager>();
+        playerLocomotion = GetComponent<PlayerLocomotion>();
+        cameraManager = GetComponent<CameraManager>();
+        staminaProfile = GetComponent<StaminaProfile>();
+        inputManager = GetComponent<InputManager>();
+        animationManager = GetComponent<AnimationManager>();
+        rigBuilder = GetComponent<RigBuilder>();
+        rigBuilder.DisableLayers();
+        riderManager = GetComponent<RiderManager>();
+        weaponManager = GetComponent<WeaponManager>();
+        characterController = GetComponent<CharacterController>();
     }
-    
+
     private void Update()
     {
         if (!isEnabledController) return;
-        _playerLocomotion.GroundedCheck();
-        _playerLocomotion.HandleJumpAndGravity();
-        _playerLocomotion.HandleMovement();
+        playerLocomotion.GroundedCheck();
+        playerLocomotion.HandleJumpAndGravity();
+        playerLocomotion.HandleMovement();
     }
 
     private void LateUpdate()
     {
-        _animationManager.SetAnimatorAxis();
+        animationManager.SetAnimatorAxis();
         if (lockCameraPosition) return;
-        _cameraManager.CameraRotation();
+        cameraManager.CameraRotation();
     }
 }

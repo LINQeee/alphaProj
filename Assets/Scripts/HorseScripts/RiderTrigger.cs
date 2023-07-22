@@ -18,6 +18,6 @@ public class RiderTrigger : MonoBehaviour
     {
         if (riderManager == null) return;
         riderManager.isCanMount = value;
-        riderManager.CurrentHorse = horseController;
+        riderManager.currentHorse = horseController;
     }
 }

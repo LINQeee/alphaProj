@@ -27,7 +27,7 @@ public class HorseAnimationManager : MonoBehaviour
 
     public void SetIsSprintingRelativeToController(bool isControllerEnabled, StaminaProfile staminaProfile)
     {
-            SetIsSprinting(isControllerEnabled && staminaProfile.IsCanRun);
+            SetIsSprinting(isControllerEnabled && staminaProfile.isCanRun);
     }
 
     public void AnimateFallingIfNotJumping(bool isJumping, bool isGrounded)
